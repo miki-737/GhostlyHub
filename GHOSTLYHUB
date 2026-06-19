@@ -1,18 +1,20 @@
---// 👻 GHOSTLYHUB MENU (LOCKED NAME VERSION)
---// SOLO EDITABLE POR EL CREADOR
+--// 👻 GHOSTLYHUB MENU - VERSIÓN DELTA EXECUTOR
+--// Optimizado para Delta Exploit
 
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CoreGui = game:GetService("CoreGui")
 
 local player = Players.LocalPlayer
+local mouse = player:GetMouse()
 
 ------------------------------------------------
--- 🔒 CONFIG (SOLO EL CREADOR PUEDE EDITAR ESTO)
+-- 🔒 CONFIG 
 ------------------------------------------------
-local MENU_NAME = "GhostlyHub 👻" -- ❌ NO EDITABLE IN-GAME
+local MENU_NAME = "GhostlyHub 👻"
 local OPEN_KEY = Enum.KeyCode.F4
 
 ------------------------------------------------
@@ -22,59 +24,95 @@ local flying = false
 local noclip = false
 local invisible = false
 local flySpeed = 50
+local flyConnection = nil
+local noclipConnection = nil
 
 ------------------------------------------------
--- REMOTE AUTO
+-- GUI PROTECTION (DELTA FIX)
 ------------------------------------------------
-local remote = ReplicatedStorage:FindFirstChild("GhostlyHubRemote")
-if not remote then
-    remote = Instance.new("RemoteEvent")
-    remote.Name = "GhostlyHubRemote"
-    remote.Parent = ReplicatedStorage
+local gui = Instance.new("ScreenGui")
+gui.Name = "GhostlyHub_" .. tostring(math.random(1000,9999))
+gui.ResetOnSpawn = false
+
+-- Delta usa CoreGui para evitar detección
+pcall(function()
+    gui.Parent = CoreGui
+end)
+
+if not gui.Parent then
+    gui.Parent = player:WaitForChild("PlayerGui")
 end
 
 ------------------------------------------------
--- GUI
+-- MAIN FRAME
 ------------------------------------------------
-local gui = Instance.new("ScreenGui")
-gui.Name = "GhostlyHub"
-gui.Parent = player:WaitForChild("PlayerGui")
-
 local main = Instance.new("Frame")
 main.Size = UDim2.new(0, 420, 0, 320)
 main.Position = UDim2.new(0.5, -210, 0.5, -160)
 main.BackgroundColor3 = Color3.fromRGB(15,15,15)
+main.BorderSizePixel = 0
 main.Active = true
-main.Draggable = true
 main.Parent = gui
 
-Instance.new("UICorner", main)
+-- Delta-compatible draggable (manual implementation)
+local dragging = false
+local dragInput, dragStart, startPos
 
-TweenService:Create(main, TweenInfo.new(0.3, Enum.EasingStyle.Back), {
-    Size = main.Size
-}):Play()
+main.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = main.Position
+    end
+end)
+
+main.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, 
+                                   startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+main.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
+
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 8)
 
 ------------------------------------------------
--- 👻 LOGO TOGGLE (IMAGEN)
+-- 👻 LOGO TOGGLE 
 ------------------------------------------------
 local logo = Instance.new("ImageButton")
 logo.Size = UDim2.new(0, 60, 0, 60)
 logo.Position = UDim2.new(0, 10, 0, 10)
-
 logo.Image = "rbxassetid://132405189693372"
-
 logo.BackgroundColor3 = Color3.fromRGB(25,25,25)
 logo.ScaleType = Enum.ScaleType.Fit
 logo.Parent = gui
-
-Instance.new("UICorner", logo)
+Instance.new("UICorner", logo).CornerRadius = UDim.new(0, 8)
 
 logo.MouseButton1Click:Connect(function()
     main.Visible = not main.Visible
+    -- Animación suave
+    if main.Visible then
+        main.Size = UDim2.new(0, 0, 0, 0)
+        TweenService:Create(main, TweenInfo.new(0.3, Enum.EasingStyle.Back), {
+            Size = UDim2.new(0, 420, 0, 320)
+        }):Play()
+    end
 end)
 
 ------------------------------------------------
--- 🏷️ TITLE (NO SE PUEDE CAMBIAR EN JUEGO)
+-- 🏷️ TITLE
 ------------------------------------------------
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1,0,0,40)
@@ -82,27 +120,29 @@ title.BackgroundTransparency = 1
 title.Text = MENU_NAME
 title.TextColor3 = Color3.fromRGB(180,0,255)
 title.TextScaled = true
+title.Font = Enum.Font.GothamBold
 title.Parent = main
 
 ------------------------------------------------
 -- BUTTON CREATOR
 ------------------------------------------------
-local function button(text, y)
+local function button(text, y, x)
     local b = Instance.new("TextButton")
     b.Size = UDim2.new(0, 180, 0, 30)
-    b.Position = UDim2.new(0, 10, 0, y)
+    b.Position = UDim2.new(0, x or 10, 0, y)
     b.Text = text
     b.BackgroundColor3 = Color3.fromRGB(30,30,30)
     b.TextColor3 = Color3.new(1,1,1)
+    b.Font = Enum.Font.Gotham
     b.Parent = main
-    Instance.new("UICorner", b)
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
 
     b.MouseEnter:Connect(function()
-        TweenService:Create(b, TweenInfo.new(0.1), {Size = UDim2.new(0,190,0,32)}):Play()
+        TweenService:Create(b, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(180,0,255)}):Play()
     end)
 
     b.MouseLeave:Connect(function()
-        TweenService:Create(b, TweenInfo.new(0.1), {Size = UDim2.new(0,180,0,30)}):Play()
+        TweenService:Create(b, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(30,30,30)}):Play()
     end)
 
     return b
@@ -115,81 +155,170 @@ local giveBox = Instance.new("TextBox")
 giveBox.Size = UDim2.new(0, 200, 0, 30)
 giveBox.Position = UDim2.new(0, 210, 0, 60)
 giveBox.PlaceholderText = "give espada 3"
+giveBox.BackgroundColor3 = Color3.fromRGB(40,40,40)
+giveBox.TextColor3 = Color3.new(1,1,1)
+giveBox.Font = Enum.Font.Gotham
 giveBox.Parent = main
-Instance.new("UICorner", giveBox)
+Instance.new("UICorner", giveBox).CornerRadius = UDim.new(0, 6)
 
 local giveBtn = button("GIVE", 60)
 
 giveBtn.MouseButton1Click:Connect(function()
     local args = string.split(giveBox.Text, " ")
     if args[1] == "give" then
-        remote:FireServer("give", args[2], tonumber(args[3]) or 1)
-    end
-end)
-
-------------------------------------------------
--- ✈️ FLY
-------------------------------------------------
-local flyBtn = button("FLY", 110)
-
-local speedBox = Instance.new("TextBox")
-speedBox.Size = UDim2.new(0, 200, 0, 30)
-speedBox.Position = UDim2.new(0, 210, 0, 110)
-speedBox.PlaceholderText = "velocidad 1-100"
-speedBox.Parent = main
-Instance.new("UICorner", speedBox)
-
-flyBtn.MouseButton1Click:Connect(function()
-    flying = not flying
-end)
-
-------------------------------------------------
--- 👁️ INVISIBLE
-------------------------------------------------
-local invisBtn = button("INVISIBLE", 150)
-
-invisBtn.MouseButton1Click:Connect(function()
-    invisible = not invisible
-    local char = player.Character
-    if not char then return end
-
-    for _,v in pairs(char:GetDescendants()) do
-        if v:IsA("BasePart") or v:IsA("Decal") then
-            v.Transparency = invisible and 1 or 0
+        local remote = ReplicatedStorage:FindFirstChild("GhostlyHubRemote")
+        if remote then
+            remote:FireServer("give", args[2], tonumber(args[3]) or 1)
+        else
+            warn("GhostlyHubRemote no encontrado en ReplicatedStorage")
         end
     end
 end)
 
 ------------------------------------------------
--- 🚪 NOCLIP
+-- ✈️ FLY (MEJORADO PARA DELTA)
 ------------------------------------------------
-local noclipBtn = button("NOCLIP", 190)
+local flyBtn = button("FLY: OFF", 110)
 
-noclipBtn.MouseButton1Click:Connect(function()
-    noclip = not noclip
+local speedBox = Instance.new("TextBox")
+speedBox.Size = UDim2.new(0, 200, 0, 30)
+speedBox.Position = UDim2.new(0, 210, 0, 110)
+speedBox.PlaceholderText = "velocidad 1-100"
+speedBox.BackgroundColor3 = Color3.fromRGB(40,40,40)
+speedBox.TextColor3 = Color3.new(1,1,1)
+speedBox.Font = Enum.Font.Gotham
+speedBox.Parent = main
+Instance.new("UICorner", speedBox).CornerRadius = UDim.new(0, 6)
+
+-- Fly mejorado con BodyGyro
+local flyGyro, flyVel
+
+flyBtn.MouseButton1Click:Connect(function()
+    flying = not flying
+    flyBtn.Text = flying and "FLY: ON" or "FLY: OFF"
+    
+    local char = player.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    if flying then
+        -- Crear controles de vuelo
+        flyGyro = Instance.new("BodyGyro")
+        flyGyro.P = 9e4
+        flyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+        flyGyro.CFrame = hrp.CFrame
+        flyGyro.Parent = hrp
+        
+        flyVel = Instance.new("BodyVelocity")
+        flyVel.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+        flyVel.Velocity = Vector3.new(0, 0, 0)
+        flyVel.Parent = hrp
+    else
+        -- Limpiar
+        if flyGyro then flyGyro:Destroy() end
+        if flyVel then flyVel:Destroy() end
+        flyGyro, flyVel = nil, nil
+    end
+end)
+
+-- Loop de fly
+RunService.RenderStepped:Connect(function()
+    if flying and flyVel and flyGyro then
+        local char = player.Character
+        if char then
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                flySpeed = tonumber(speedBox.Text) or 50
+                flySpeed = math.clamp(flySpeed, 1, 100)
+                
+                local cam = workspace.CurrentCamera
+                flyGyro.CFrame = cam.CFrame
+                
+                local velocity = Vector3.new(0, 0, 0)
+                
+                if UIS:IsKeyDown(Enum.KeyCode.W) then
+                    velocity = velocity + cam.CFrame.LookVector
+                end
+                if UIS:IsKeyDown(Enum.KeyCode.S) then
+                    velocity = velocity - cam.CFrame.LookVector
+                end
+                if UIS:IsKeyDown(Enum.KeyCode.A) then
+                    velocity = velocity - cam.CFrame.RightVector
+                end
+                if UIS:IsKeyDown(Enum.KeyCode.D) then
+                    velocity = velocity + cam.CFrame.RightVector
+                end
+                if UIS:IsKeyDown(Enum.KeyCode.Space) then
+                    velocity = velocity + Vector3.new(0, 1, 0)
+                end
+                if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then
+                    velocity = velocity - Vector3.new(0, 1, 0)
+                end
+                
+                if velocity.Magnitude > 0 then
+                    velocity = velocity.Unit * flySpeed
+                end
+                
+                flyVel.Velocity = velocity
+            end
+        end
+    end
 end)
 
 ------------------------------------------------
--- 🔁 LOOP
+-- 👁️ INVISIBLE
 ------------------------------------------------
-RunService.RenderStepped:Connect(function()
+local invisBtn = button("INVISIBLE: OFF", 150)
+local storedTransparency = {}
+
+invisBtn.MouseButton1Click:Connect(function()
+    invisible = not invisible
+    invisBtn.Text = invisible and "INVISIBLE: ON" or "INVISIBLE: OFF"
+    
     local char = player.Character
     if not char then return end
 
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-
-    flySpeed = tonumber(speedBox.Text) or 50
-    flySpeed = math.clamp(flySpeed, 1, 100)
-
-    if flying then
-        hrp.Velocity = workspace.CurrentCamera.CFrame.LookVector * flySpeed
-    end
-
-    if noclip then
+    if invisible then
+        storedTransparency = {}
         for _,v in pairs(char:GetDescendants()) do
             if v:IsA("BasePart") then
-                v.CanCollide = false
+                storedTransparency[v] = v.Transparency
+                v.Transparency = 1
+            elseif v:IsA("Decal") or v:IsA("Texture") then
+                storedTransparency[v] = v.Transparency
+                v.Transparency = 1
+            end
+        end
+    else
+        for _,v in pairs(char:GetDescendants()) do
+            if (v:IsA("BasePart") or v:IsA("Decal") or v:IsA("Texture")) and storedTransparency[v] then
+                v.Transparency = storedTransparency[v]
+            end
+        end
+        storedTransparency = {}
+    end
+end)
+
+------------------------------------------------
+-- 🚪 NOCLIP (MEJORADO)
+------------------------------------------------
+local noclipBtn = button("NOCLIP: OFF", 190)
+
+noclipBtn.MouseButton1Click:Connect(function()
+    noclip = not noclip
+    noclipBtn.Text = noclip and "NOCLIP: ON" or "NOCLIP: OFF"
+end)
+
+-- Noclip loop mejorado
+RunService.Stepped:Connect(function()
+    if noclip then
+        local char = player.Character
+        if char then
+            for _,v in pairs(char:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    v.CanCollide = false
+                end
             end
         end
     end
@@ -198,8 +327,16 @@ end)
 ------------------------------------------------
 -- 🎮 OPEN KEY
 ------------------------------------------------
-UIS.InputBegan:Connect(function(input)
-    if input.KeyCode == OPEN_KEY then
+UIS.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == OPEN_KEY then
         main.Visible = not main.Visible
+        if main.Visible then
+            main.Size = UDim2.new(0, 0, 0, 0)
+            TweenService:Create(main, TweenInfo.new(0.3, Enum.EasingStyle.Back), {
+                Size = UDim2.new(0, 420, 0, 320)
+            }):Play()
+        end
     end
 end)
+
+print("GhostlyHub cargado en Delta Executor | Presiona F4 para abrir")

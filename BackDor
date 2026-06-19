@@ -1,33 +1,46 @@
-local RS = game:GetService("ReplicatedStorage")
+--// 👻 GHOSTLYHUB SERVER SCRIPT
+--// Va en ServerScriptService del juego
 
--- Esperar/crear el remote
-local remote = RS:WaitForChild("GhostlyHubRemote")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Crear el RemoteEvent si no existe
+local remote = ReplicatedStorage:FindFirstChild("GhostlyHubRemote")
+if not remote then
+    remote = Instance.new("RemoteEvent")
+    remote.Name = "GhostlyHubRemote"
+    remote.Parent = ReplicatedStorage
+end
+
+-- Crear carpeta de herramientas si no existe
+local toolsFolder = ReplicatedStorage:FindFirstChild("Tools")
+if not toolsFolder then
+    toolsFolder = Instance.new("Folder")
+    toolsFolder.Name = "Tools"
+    toolsFolder.Parent = ReplicatedStorage
+end
 
 remote.OnServerEvent:Connect(function(player, action, toolName, amount)
-    -- Verificación básica anti-spam
+    -- Verificación de seguridad básica
     if typeof(action) ~= "string" then return end
-    
     if action ~= "give" then return end
-
-    local folder = RS:FindFirstChild("Tools")
-    if not folder then 
-        warn("Carpeta Tools no encontrada en ReplicatedStorage")
-        return 
-    end
-
-    local tool = folder:FindFirstChild(toolName)
+    
+    -- Buscar la herramienta
+    local tool = toolsFolder:FindFirstChild(toolName)
     if not tool then 
-        warn("Tool no encontrada:", toolName)
+        warn("Herramienta no encontrada: " .. tostring(toolName))
         return 
     end
-
-    -- Limitar cantidad
+    
+    -- Limitar cantidad (anti-lag)
     amount = math.clamp(tonumber(amount) or 1, 1, 50)
-
+    
+    -- Dar las herramientas
     for i = 1, amount do
         local clone = tool:Clone()
         clone.Parent = player.Backpack
     end
     
-    print("Dadas", amount, toolName, "a", player.Name)
+    print(string.format("GhostlyHub: %s recibió %d %s", player.Name, amount, toolName))
 end)
+
+print("GhostlyHub Server cargado correctamente")
